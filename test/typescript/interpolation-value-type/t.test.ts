@@ -4,12 +4,16 @@ import type { TFunction } from 'i18next';
 describe('interpolation types (zero-config, derived from format specifiers)', () => {
   const t: TFunction<'custom'> = (() => '') as never;
 
-  it('should type unformatted values as string', () => {
-    // {{name}} has no format specifier → string
+  it('should type unformatted values as string | number', () => {
+    // {{name}} has no format specifier → string | number
+    // (i18next stringifies values at runtime, so numbers are also accepted.)
     t('greeting', { name: 'World' });
-
-    // @ts-expect-error number should not be assignable to string
     t('greeting', { name: 42 });
+
+    // @ts-expect-error boolean should not be assignable to string | number
+    t('greeting', { name: true });
+    // @ts-expect-error object should not be assignable to string | number
+    t('greeting', { name: { id: 1 } });
   });
 
   it('should type "number" format as number', () => {

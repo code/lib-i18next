@@ -122,7 +122,7 @@ export type TypeOptions = $MergeBy<
      * - `datetime` → `Date`
      * - `relativetime` → `number`
      * - `list` → `readonly string[]`
-     * - No format specifier → `string`
+     * - No format specifier → `string | number` (since i18next stringifies values at runtime)
      *
      * Use this option to add mappings for custom formatters or to override
      * the built-in defaults.

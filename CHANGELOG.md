@@ -1,3 +1,7 @@
+## 26.0.9
+
+- fix(types): unformatted interpolation values are now typed as `string | number` (was `string`). i18next stringifies values at runtime, so requiring callers to wrap numbers in `String(...)` for plain `{{var}}` placeholders was unnecessary friction — and could mask the real problem when a non-string value was passed alongside multiple interpolation slots (the `t()` overload resolution would fall through to the 3-arg form and report a confusing "not assignable to string" error against the options object). Typed format specifiers like `{{x, number}}`, `{{x, currency}}`, `{{x, datetime}}`, etc. keep their precise types; this only relaxes the no-format default. The `count` variable remains `number`-only
+
 ## 26.0.8
 
 - fix(types): restore the pre-v25.10.4 `ExistsFunction` shape so plain arrow functions can again be assigned to `ExistsFunction`-typed variables (TypeScript cannot infer type predicates through multi-overload assignment). Direct `i18next.exists(key)` calls still narrow `key` to `SelectorKey` — the predicate is now declared inline on `i18n.exists`. Custom wrappers that want the narrowing can type themselves as `typeof i18next.exists` [2425](https://github.com/i18next/i18next/issues/2425)

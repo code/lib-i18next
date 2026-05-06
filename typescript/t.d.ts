@@ -196,7 +196,7 @@ type _StripFormatOptions<F> = F extends `${infer Name}(${string})` ? Name : F;
 type _ResolveEntryType<Name extends string, Format> = [Format] extends [never]
   ? Name extends 'count'
     ? number
-    : string
+    : string | number
   : Format extends keyof _InterpolationFormatTypeMap
     ? _InterpolationFormatTypeMap[Format]
     : _StripFormatOptions<Format> extends keyof _InterpolationFormatTypeMap

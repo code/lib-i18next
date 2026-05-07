@@ -1,3 +1,7 @@
+## 26.0.10
+
+- feat: `getFixedT` accepts a fourth optional `fixedOpts` argument carrying `scopeNs` — the full namespace list the bound `t` was created for. The selector API uses `scopeNs` to detect when a path's first segment is a namespace prefix, **without** changing resolution scope. Resolution still uses the bound `ns` (a single primary string in the typical react-i18next setup), so plain `t('key')` lookups stay isolated to the primary namespace exactly as before — only `t($ => $.secondaryNs.foo)` selectors now route correctly under `useTranslation([nsA, nsB])`. Fixes the runtime side of [#2429](https://github.com/i18next/i18next/issues/2429) for the `react-i18next` default-`nsMode` case. The 4th argument is opt-in: existing 3-arg `getFixedT(lng, ns, keyPrefix)` callers see no behavior change.
+
 ## 26.0.9
 
 - fix(types): unformatted interpolation values are now typed as `string | number` (was `string`). i18next stringifies values at runtime, so requiring callers to wrap numbers in `String(...)` for plain `{{var}}` placeholders was unnecessary friction — and could mask the real problem when a non-string value was passed alongside multiple interpolation slots (the `t()` overload resolution would fall through to the 3-arg form and report a confusing "not assignable to string" error against the options object). Typed format specifiers like `{{x, number}}`, `{{x, currency}}`, `{{x, datetime}}`, etc. keep their precise types; this only relaxes the no-format default. The `count` variable remains `number`-only

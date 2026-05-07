@@ -403,7 +403,22 @@ class I18n extends EventEmitter {
     return deferred;
   }
 
-  getFixedT(lng, ns, keyPrefix) {
+  // `fixedOpts` (optional 4th arg) carries options that are tied to the
+  // bound t function rather than to the resolution of any single call:
+  //
+  //   - `scopeNs?: string[]`
+  //       Full namespace list the bound t was created for (e.g. the array
+  //       passed to `useTranslation(['nsA','nsB'])`). Used *only* by the
+  //       selector path to decide whether `path[0]` should be rewritten as
+  //       a namespace prefix. Resolution semantics are unchanged: the bound
+  //       `ns` (a single primary string) still drives `Translator.translate`.
+  //       This decouples selector ns-detection from resolution scope so a
+  //       react-i18next hook called with multiple namespaces can route
+  //       `t($ => $.secondary.foo)` correctly *without* turning every
+  //       `t('foo')` lookup into a multi-ns fallback chain.
+  //       See the v25.8.19 selector rule in `src/selector.js`.
+  getFixedT(lng, ns, keyPrefix, fixedOpts) {
+    const scopeNs = fixedOpts?.scopeNs;
     const fixedT = (key, opts, ...rest) => {
       let o;
       if (typeof opts !== 'object') {
@@ -414,13 +429,23 @@ class I18n extends EventEmitter {
 
       o.lng = o.lng || fixedT.lng;
       o.lngs = o.lngs || fixedT.lngs;
+      // Detect per-call explicit `ns` BEFORE auto-filling from fixedT.ns, so the
+      // selector can prefer call-level ns over the bound scopeNs.
+      const explicitCallNs = o.ns !== undefined && o.ns !== null;
       o.ns = o.ns || fixedT.ns;
       if (o.keyPrefix !== '') o.keyPrefix = o.keyPrefix || keyPrefix || fixedT.keyPrefix;
 
       // keysFromSelector must be called after o.ns is resolved above, so that namespace
       // rewriting uses the effective namespace (e.g. the one fixed by getFixedT) rather
-      // than the raw global ns array from this.options.
+      // than the raw global ns array from this.options. Precedence for selector
+      // ns-detection (highest first):
+      //   1. `o.ns` if the caller passed it explicitly on this call
+      //   2. `scopeNs` if the bound t carries it (the hook's full ns list)
+      //   3. `o.ns` populated from fixedT.ns / this.options
+      // This decouples selector path[0] matching from resolution scope. `o.ns`
+      // continues to drive `Translator.translate` resolution unchanged.
       const selectorOpts = { ...this.options, ...o };
+      if (Array.isArray(scopeNs) && !explicitCallNs) selectorOpts.ns = scopeNs;
       if (typeof o.keyPrefix === 'function') o.keyPrefix = keysFromSelector(o.keyPrefix, selectorOpts);
       const keySeparator = this.options.keySeparator || '.';
       let resultKey

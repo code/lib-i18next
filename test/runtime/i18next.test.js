@@ -268,6 +268,58 @@ describe('i18next', () => {
         expect(i18next.t(['group.key1', 'group.key2'], { lng: 'fr' })).to.equal('Translation 1');
         expect(t(['key1', 'key2'])).to.equal('Translation 1');
       });
+
+      // `scopeNs` decouples selector path[0] matching from resolution scope.
+      // The bound `ns` (a single primary string) still drives Translator.resolve,
+      // so non-selector lookups stay isolated to the primary namespace; but the
+      // selector now sees the full hook namespace list and can route a leading
+      // secondary-ns segment to the right namespace.
+      describe('scopeNs (4th opts arg)', () => {
+        beforeAll(async () => {
+          i18next.addResource('en', 'authNs', 'login.welcome', 'WelcomeFromAuth');
+          i18next.addResource('en', 'authNs', 'shared', 'auth-shared');
+          i18next.addResource('en', 'validationNs', 'email.required', 'EmailRequired');
+          i18next.addResource('en', 'validationNs', 'shared', 'validation-shared');
+          await i18next.loadNamespaces(['authNs', 'validationNs']);
+        });
+        it('routes selector path with secondary-ns prefix to that namespace', () => {
+          const t = i18next.getFixedT('en', 'authNs', undefined, {
+            scopeNs: ['authNs', 'validationNs'],
+          });
+          expect(t(($) => $.validationNs.email.required)).to.equal('EmailRequired');
+        });
+        it('does NOT rewrite a primary-ns prefixed selector path', () => {
+          // path[0] === primary ('authNs') means a literal sub-key, not a ns switch.
+          const t = i18next.getFixedT('en', 'authNs', undefined, {
+            scopeNs: ['authNs', 'validationNs'],
+          });
+          // No `authNs.login.welcome` key exists under primary; the rewrite is intentionally not applied.
+          expect(t(($) => $.authNs.login.welcome)).to.equal('authNs.login.welcome');
+        });
+        it('still routes a non-prefixed selector to the primary ns', () => {
+          const t = i18next.getFixedT('en', 'authNs', undefined, {
+            scopeNs: ['authNs', 'validationNs'],
+          });
+          expect(t(($) => $.login.welcome)).to.equal('WelcomeFromAuth');
+        });
+        it('keeps non-selector resolution isolated to the primary ns (no fallback)', () => {
+          // `shared` exists in BOTH namespaces. Without scopeNs it would resolve to
+          // the primary's value; with scopeNs it must STILL resolve to the primary,
+          // because scopeNs is selector-only and does not change resolution scope.
+          const t = i18next.getFixedT('en', 'authNs', undefined, {
+            scopeNs: ['authNs', 'validationNs'],
+          });
+          expect(t('shared')).to.equal('auth-shared');
+        });
+        it('lets per-call ns override scopeNs for selector path detection', () => {
+          const t = i18next.getFixedT('en', 'authNs', undefined, {
+            scopeNs: ['authNs', 'validationNs'],
+          });
+          // Caller explicitly passed `ns: 'validationNs'` → selector $ proxies the
+          // validationNs root; path[0] is a real key, no rewriting kicks in.
+          expect(t(($) => $.email.required, { ns: 'validationNs' })).to.equal('EmailRequired');
+        });
+      });
     });
   });
 

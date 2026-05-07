@@ -2025,7 +2025,8 @@
       }
       return deferred;
     }
-    getFixedT(lng, ns, keyPrefix) {
+    getFixedT(lng, ns, keyPrefix, fixedOpts) {
+      const scopeNs = fixedOpts?.scopeNs;
       const fixedT = (key, opts, ...rest) => {
         let o;
         if (typeof opts !== 'object') {
@@ -2037,12 +2038,14 @@
         }
         o.lng = o.lng || fixedT.lng;
         o.lngs = o.lngs || fixedT.lngs;
+        const explicitCallNs = o.ns !== undefined && o.ns !== null;
         o.ns = o.ns || fixedT.ns;
         if (o.keyPrefix !== '') o.keyPrefix = o.keyPrefix || keyPrefix || fixedT.keyPrefix;
         const selectorOpts = {
           ...this.options,
           ...o
         };
+        if (Array.isArray(scopeNs) && !explicitCallNs) selectorOpts.ns = scopeNs;
         if (typeof o.keyPrefix === 'function') o.keyPrefix = keysFromSelector(o.keyPrefix, selectorOpts);
         const keySeparator = this.options.keySeparator || '.';
         let resultKey;
